@@ -14,7 +14,6 @@ namespace System.Windows.Forms
         {
             internal class ListViewSubItemAccessibleObject : AccessibleObject
             {
-                private readonly ListView _owningListView;
                 private readonly ListViewItem _owningItem;
 
                 // This is necessary for the "Details" view,  when there is no ListViewSubItem,
@@ -25,18 +24,24 @@ namespace System.Windows.Forms
                 {
                     OwningSubItem = owningSubItem;
                     _owningItem = owningItem.OrThrowIfNull();
-                    _owningListView = owningItem.ListView ?? owningItem.Group?.ListView ?? throw new InvalidOperationException(nameof(owningItem.ListView));
                 }
 
-                internal override UiaCore.IRawElementProviderFragmentRoot FragmentRoot
-                    => _owningListView.AccessibilityObject;
+                private ListView? OwningListView => _owningItem.ListView ?? _owningItem.Group?.ListView;
+
+                internal override UiaCore.IRawElementProviderFragmentRoot? FragmentRoot
+                    => OwningListView?.AccessibilityObject;
 
                 public override Rectangle Bounds
                 {
                     get
                     {
+                        if (OwningListView is null)
+                        {
+                            return Rectangle.Empty;
+                        }
+
                         int index = ParentInternal.GetChildIndex(this);
-                        if (index == -1)
+                        if (index == InvalidIndex)
                         {
                             return Rectangle.Empty;
                         }
@@ -52,7 +57,7 @@ namespace System.Windows.Forms
                         // When we need to get bounds for first sub item it will return width of all item.
                         int width = bounds.Width;
 
-                        if (!_owningListView.FullRowSelect && index == 0 && _owningListView.Columns.Count > 1)
+                        if (!OwningListView.FullRowSelect && index == 0 && OwningListView.Columns.Count > 1)
                         {
                             width = ParentInternal.GetSubItemBounds(subItemIndex: 1).X - bounds.X;
                         }
@@ -63,8 +68,8 @@ namespace System.Windows.Forms
                         }
 
                         return new Rectangle(
-                            _owningListView.AccessibilityObject.Bounds.X + bounds.X,
-                            _owningListView.AccessibilityObject.Bounds.Y + bounds.Y,
+                            OwningListView.AccessibilityObject.Bounds.X + bounds.X,
+                            OwningListView.AccessibilityObject.Bounds.Y + bounds.Y,
                             width, bounds.Height);
                     }
                 }
@@ -81,7 +86,10 @@ namespace System.Windows.Forms
                         _ => base.FragmentNavigate(direction)
                     };
 
-                internal override int Column => _owningListView.View == View.Details ? ParentInternal.GetChildIndex(this) : -1;
+                internal override int Column
+                    => OwningListView?.View == View.Details
+                        ? ParentInternal.GetChildIndex(this)
+                        : InvalidIndex;
 
                 /// <summary>
                 ///  Gets or sets the accessible name.
@@ -101,7 +109,12 @@ namespace System.Windows.Forms
                 {
                     get
                     {
-                        var owningItemRuntimeId = Parent.RuntimeId;
+                        var owningItemRuntimeId = ParentInternal.RuntimeId;
+
+                        if (owningItemRuntimeId == Array.Empty<int>())
+                        {
+                            return owningItemRuntimeId;
+                        }
 
                         Debug.Assert(owningItemRuntimeId.Length >= 4);
 
@@ -126,9 +139,9 @@ namespace System.Windows.Forms
                         UiaCore.UIA.ControlTypePropertyId => UiaCore.UIA.TextControlTypeId,
                         UiaCore.UIA.ProcessIdPropertyId => Environment.ProcessId,
                         UiaCore.UIA.AutomationIdPropertyId => AutomationId,
-                        UiaCore.UIA.HasKeyboardFocusPropertyId => _owningListView.Focused && _owningListView.FocusedItem == _owningItem,
+                        UiaCore.UIA.HasKeyboardFocusPropertyId => OwningListView is not null && OwningListView.Focused && OwningListView.FocusedItem == _owningItem,
                         UiaCore.UIA.IsKeyboardFocusablePropertyId => (State & AccessibleStates.Focusable) == AccessibleStates.Focusable,
-                        UiaCore.UIA.IsEnabledPropertyId => _owningListView.Enabled,
+                        UiaCore.UIA.IsEnabledPropertyId => OwningListView is not null && OwningListView.Enabled,
                         _ => base.GetPropertyValue(propertyID)
                     };
 
@@ -136,29 +149,31 @@ namespace System.Windows.Forms
                 ///  Gets the accessible state.
                 /// </summary>
                 public override AccessibleStates State
-                    => AccessibleStates.Focusable;
+                    => OwningListView is null ? AccessibleStates.Unavailable : AccessibleStates.Focusable;
 
-                internal override UiaCore.IRawElementProviderSimple ContainingGrid
-                    => _owningListView.AccessibilityObject;
+                internal override UiaCore.IRawElementProviderSimple? ContainingGrid
+                    => OwningListView?.AccessibilityObject;
 
                 internal override int Row => _owningItem.Index;
 
                 internal override UiaCore.IRawElementProviderSimple[]? GetColumnHeaderItems()
-                    => new UiaCore.IRawElementProviderSimple[] { _owningListView.Columns[Column].AccessibilityObject };
+                    => OwningListView is null
+                        ? null
+                        : new UiaCore.IRawElementProviderSimple[] { OwningListView.Columns[Column].AccessibilityObject };
 
                 internal override bool IsPatternSupported(UiaCore.UIA patternId)
                 {
                     if (patternId == UiaCore.UIA.GridItemPatternId ||
                         patternId == UiaCore.UIA.TableItemPatternId)
                     {
-                        return _owningListView.View == View.Details;
+                        return OwningListView?.View == View.Details;
                     }
 
                     return base.IsPatternSupported(patternId);
                 }
 
                 private string AutomationId
-                    => string.Format("{0}-{1}", typeof(ListViewItem.ListViewSubItem).Name, ParentInternal.GetChildIndex(this));
+                    => $"{typeof(ListViewItem.ListViewSubItem).Name}-{ParentInternal.GetChildIndex(this)}";
             }
         }
     }

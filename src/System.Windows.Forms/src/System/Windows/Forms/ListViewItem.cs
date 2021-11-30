@@ -230,8 +230,7 @@ namespace System.Windows.Forms
                 ListView owningListView = listView ?? Group?.ListView;
                 if (owningListView is null)
                 {
-                    _accessibilityObject = null;
-                    return _accessibilityObject;
+                    return _accessibilityObject ??= new ListViewItemBaseAccessibleObject(this);
                 }
 
                 if (_accessibilityObject is null || owningListView.View != _accessibilityObjectView)

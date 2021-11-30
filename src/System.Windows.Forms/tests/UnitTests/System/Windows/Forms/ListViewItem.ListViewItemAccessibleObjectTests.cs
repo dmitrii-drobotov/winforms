@@ -25,11 +25,6 @@ namespace System.Windows.Forms.Tests
 
             Assert.NotNull(ctor);
             Assert.Throws<TargetInvocationException>(() => ctor.Invoke(new object[] { null }));
-
-            // item without parent ListView
-            ListViewItem itemWithoutList = new ListViewItem();
-
-            Assert.Throws<TargetInvocationException>(() => ctor.Invoke(new object[] { itemWithoutList }));
         }
 
         [WinFormsFact]

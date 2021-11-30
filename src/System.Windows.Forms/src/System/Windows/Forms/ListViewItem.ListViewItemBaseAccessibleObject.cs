@@ -22,38 +22,38 @@ namespace System.Windows.Forms
         /// </remarks>
         internal class ListViewItemBaseAccessibleObject : AccessibleObject
         {
-            private protected readonly ListView _owningListView;
             private protected readonly ListViewItem _owningItem;
-            private protected readonly IAccessible? _systemIAccessible;
 
             public ListViewItemBaseAccessibleObject(ListViewItem owningItem)
             {
                 _owningItem = owningItem.OrThrowIfNull();
-                _owningListView = owningItem.ListView ?? owningItem.Group?.ListView ?? throw new InvalidOperationException(nameof(owningItem.ListView));
-                _systemIAccessible = _owningListView.AccessibilityObject.GetSystemIAccessibleInternal();
             }
 
-            private protected ListViewGroup? OwningGroup => _owningListView.GroupsDisplayed
-                ? _owningItem.Group ?? _owningListView.DefaultGroup
+            private protected ListView? OwningListView => _owningItem.ListView ?? _owningItem.Group?.ListView;
+
+            private protected IAccessible? SystemIAccessible => OwningListView?.AccessibilityObject.GetSystemIAccessibleInternal();
+
+            private protected ListViewGroup? OwningGroup => OwningListView is not null && OwningListView.GroupsDisplayed
+                ? _owningItem.Group ?? OwningListView.DefaultGroup
                 : null;
 
             private string AutomationId
                 => string.Format("{0}-{1}", typeof(ListViewItem).Name, CurrentIndex);
 
             public override Rectangle Bounds
-                => !_owningListView.IsHandleCreated || OwningGroup?.CollapsedState == ListViewGroupCollapsedState.Collapsed
+                => OwningListView is null || !OwningListView.IsHandleCreated || OwningGroup?.CollapsedState == ListViewGroupCollapsedState.Collapsed
                     ? Rectangle.Empty
                     : new Rectangle(
-                        _owningListView.AccessibilityObject.Bounds.X + _owningItem.Bounds.X,
-                        _owningListView.AccessibilityObject.Bounds.Y + _owningItem.Bounds.Y,
+                        OwningListView.AccessibilityObject.Bounds.X + _owningItem.Bounds.X,
+                        OwningListView.AccessibilityObject.Bounds.Y + _owningItem.Bounds.Y,
                         _owningItem.Bounds.Width,
                         _owningItem.Bounds.Height);
 
             internal int CurrentIndex
                 => _owningItem.Index;
 
-            internal override UiaCore.IRawElementProviderFragmentRoot FragmentRoot
-                => _owningListView.AccessibilityObject;
+            internal override UiaCore.IRawElementProviderFragmentRoot? FragmentRoot
+                => OwningListView?.AccessibilityObject;
 
             internal override bool IsItemSelected
                 => (State & AccessibleStates.Selected) != 0;
@@ -68,8 +68,13 @@ namespace System.Windows.Forms
             {
                 get
                 {
-                    bool owningListViewFocused = _owningListView.Focused;
-                    bool owningListItemFocused = _owningListView.FocusedItem == _owningItem;
+                    if (OwningListView is null)
+                    {
+                        return false;
+                    }
+
+                    bool owningListViewFocused = OwningListView.Focused;
+                    bool owningListItemFocused = OwningListView.FocusedItem == _owningItem;
                     return owningListViewFocused && owningListItemFocused;
                 }
             }
@@ -87,14 +92,19 @@ namespace System.Windows.Forms
             {
                 get
                 {
+                    if (OwningListView is null)
+                    {
+                        return AccessibleStates.Unavailable;
+                    }
+
                     AccessibleStates state = AccessibleStates.Selectable | AccessibleStates.Focusable | AccessibleStates.MultiSelectable;
 
-                    if (_owningListView.SelectedIndices.Contains(_owningItem.Index))
+                    if (OwningListView.SelectedIndices.Contains(_owningItem.Index))
                     {
                         return state |= AccessibleStates.Selected | AccessibleStates.Focused;
                     }
 
-                    object? systemIAccessibleState = _systemIAccessible?.get_accState(GetChildId());
+                    object? systemIAccessibleState = SystemIAccessible?.get_accState(GetChildId());
                     if (systemIAccessibleState is not null)
                     {
                         return state |= (AccessibleStates)systemIAccessibleState;
@@ -115,7 +125,12 @@ namespace System.Windows.Forms
 
             internal override UiaCore.IRawElementProviderFragment? FragmentNavigate(UiaCore.NavigateDirection direction)
             {
-                AccessibleObject _parentInternal = OwningGroup?.AccessibilityObject ?? _owningListView.AccessibilityObject;
+                if (OwningListView is null)
+                {
+                    return null;
+                }
+
+                AccessibleObject _parentInternal = OwningGroup?.AccessibilityObject ?? OwningListView.AccessibilityObject;
 
                 switch (direction)
                 {
@@ -123,7 +138,7 @@ namespace System.Windows.Forms
                         return _parentInternal;
                     case UiaCore.NavigateDirection.NextSibling:
                         int childIndex = _parentInternal.GetChildIndex(this);
-                        return childIndex == -1 ? null : _parentInternal.GetChild(childIndex + 1);
+                        return childIndex == InvalidIndex ? null : _parentInternal.GetChild(childIndex + 1);
                     case UiaCore.NavigateDirection.PreviousSibling:
                         return _parentInternal.GetChild(_parentInternal.GetChildIndex(this) - 1);
                     case UiaCore.NavigateDirection.FirstChild:
@@ -136,7 +151,12 @@ namespace System.Windows.Forms
 
             public override AccessibleObject? GetChild(int index)
             {
-                if (_owningListView.View == View.Details || _owningListView.View == View.Tile)
+                if (OwningListView is null)
+                {
+                    return null;
+                }
+
+                if (OwningListView.View == View.Details || OwningListView.View == View.Tile)
                 {
                     throw new InvalidOperationException(string.Format(SR.ListViewItemAccessibilityObjectInvalidViewsException,
                         nameof(View.LargeIcon),
@@ -151,7 +171,12 @@ namespace System.Windows.Forms
 
             public override int GetChildCount()
             {
-                if (_owningListView.View == View.Details || _owningListView.View == View.Tile)
+                if (OwningListView is null)
+                {
+                    return InvalidIndex;
+                }
+
+                if (OwningListView.View == View.Details || OwningListView.View == View.Tile)
                 {
                     throw new InvalidOperationException(string.Format(SR.ListViewItemAccessibilityObjectInvalidViewsException,
                         nameof(View.LargeIcon),
@@ -159,10 +184,10 @@ namespace System.Windows.Forms
                         nameof(View.SmallIcon)));
                 }
 
-                return -1;
+                return InvalidIndex;
             }
 
-            internal override int GetChildIndex(AccessibleObject? child) => -1;
+            internal override int GetChildIndex(AccessibleObject? child) => InvalidIndex;
 
             internal override object? GetPropertyValue(UiaCore.UIA propertyID)
                 => propertyID switch
@@ -171,10 +196,10 @@ namespace System.Windows.Forms
                     UiaCore.UIA.ControlTypePropertyId => UiaCore.UIA.ListItemControlTypeId,
                     UiaCore.UIA.HasKeyboardFocusPropertyId => OwningListItemFocused,
                     UiaCore.UIA.IsKeyboardFocusablePropertyId => (State & AccessibleStates.Focusable) == AccessibleStates.Focusable,
-                    UiaCore.UIA.IsEnabledPropertyId => _owningListView.Enabled,
+                    UiaCore.UIA.IsEnabledPropertyId => OwningListView?.Enabled ?? false,
                     UiaCore.UIA.IsOffscreenPropertyId => OwningGroup?.CollapsedState == ListViewGroupCollapsedState.Collapsed
                                                         || (bool)(base.GetPropertyValue(UiaCore.UIA.IsOffscreenPropertyId) ?? false),
-                    UiaCore.UIA.NativeWindowHandlePropertyId => _owningListView.IsHandleCreated ? _owningListView.Handle : IntPtr.Zero,
+                    UiaCore.UIA.NativeWindowHandlePropertyId => OwningListView?.Handle ?? IntPtr.Zero,
                     _ => base.GetPropertyValue(propertyID)
                 };
 
@@ -184,7 +209,12 @@ namespace System.Windows.Forms
             {
                 get
                 {
-                    var owningListViewRuntimeId = _owningListView.AccessibilityObject.RuntimeId;
+                    if (OwningListView is null)
+                    {
+                        return Array.Empty<int>();
+                    }
+
+                    var owningListViewRuntimeId = OwningListView.AccessibilityObject.RuntimeId;
 
                     Debug.Assert(owningListViewRuntimeId.Length >= 2);
 
@@ -197,7 +227,7 @@ namespace System.Windows.Forms
                             4, // Win32-control specific RuntimeID constant, is used in similar Win32 controls and is used in WinForms controls for consistency.
                             OwningGroup.AccessibilityObject is ListViewGroupAccessibleObject listViewGroupAccessibleObject
                                             ? listViewGroupAccessibleObject.CurrentIndex
-                                            : -1,
+                                            : InvalidIndex,
                             CurrentIndex
                         };
                     }
@@ -223,36 +253,35 @@ namespace System.Windows.Forms
             /// <param name="patternId">The pattern ID.</param>
             /// <returns>True if specified </returns>
             internal override bool IsPatternSupported(UiaCore.UIA patternId)
-            {
-                if (patternId == UiaCore.UIA.ScrollItemPatternId ||
-                    patternId == UiaCore.UIA.LegacyIAccessiblePatternId ||
-                    patternId == UiaCore.UIA.SelectionItemPatternId ||
-                    patternId == UiaCore.UIA.InvokePatternId ||
-                    (patternId == UiaCore.UIA.TogglePatternId && _owningListView.CheckBoxes))
+                => patternId switch
                 {
-                    return true;
-                }
-
-                return base.IsPatternSupported(patternId);
-            }
+                    UiaCore.UIA.ScrollItemPatternId => true,
+                    UiaCore.UIA.LegacyIAccessiblePatternId => true,
+                    UiaCore.UIA.SelectionItemPatternId => true,
+                    UiaCore.UIA.InvokePatternId => true,
+                    UiaCore.UIA.TogglePatternId => OwningListView?.CheckBoxes ?? false,
+                    _ => base.IsPatternSupported(patternId)
+                };
 
             internal override void RemoveFromSelection()
             {
                 // Do nothing, C++ implementation returns UIA_E_INVALIDOPERATION 0x80131509
             }
 
-            internal override UiaCore.IRawElementProviderSimple ItemSelectionContainer
-                => _owningListView.AccessibilityObject;
+            internal override UiaCore.IRawElementProviderSimple? ItemSelectionContainer
+                => OwningListView?.AccessibilityObject;
 
             internal override void ScrollIntoView() => _owningItem.EnsureVisible();
 
             internal unsafe override void SelectItem()
             {
-                if (_owningListView.IsHandleCreated)
+                if (OwningListView is null || !OwningListView.IsHandleCreated)
                 {
-                    _owningListView.SelectedIndices.Add(CurrentIndex);
-                    User32.InvalidateRect(new HandleRef(this, _owningListView.Handle), null, BOOL.FALSE);
+                    return;
                 }
+
+                OwningListView.SelectedIndices.Add(CurrentIndex);
+                User32.InvalidateRect(new HandleRef(this, OwningListView.Handle), lpRect: null, bErase: BOOL.FALSE);
 
                 RaiseAutomationEvent(UiaCore.UIA.AutomationFocusChangedEventId);
                 RaiseAutomationEvent(UiaCore.UIA.SelectionItem_ElementSelectedEventId);
@@ -266,14 +295,14 @@ namespace System.Windows.Forms
 
             public override void Select(AccessibleSelection flags)
             {
-                if (!_owningListView.IsHandleCreated)
+                if (OwningListView is null || !OwningListView.IsHandleCreated)
                 {
                     return;
                 }
 
                 try
                 {
-                    _systemIAccessible?.accSelect((int)flags, GetChildId());
+                    SystemIAccessible?.accSelect((int)flags, GetChildId());
                 }
                 catch (ArgumentException)
                 {

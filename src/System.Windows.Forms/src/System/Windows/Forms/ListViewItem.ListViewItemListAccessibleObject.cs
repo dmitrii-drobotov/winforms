@@ -17,17 +17,22 @@ namespace System.Windows.Forms
             }
 
             public override Rectangle Bounds
-                => !_owningListView.IsHandleCreated
+                => OwningListView is null || !OwningListView.IsHandleCreated
                     ? Rectangle.Empty
                     : new Rectangle(
-                        _owningListView.AccessibilityObject.Bounds.X + _owningItem.Bounds.X,
-                        _owningListView.AccessibilityObject.Bounds.Y + _owningItem.Bounds.Y,
+                        OwningListView.AccessibilityObject.Bounds.X + _owningItem.Bounds.X,
+                        OwningListView.AccessibilityObject.Bounds.Y + _owningItem.Bounds.Y,
                         _owningItem.Bounds.Width,
                         _owningItem.Bounds.Height);
 
             internal override UiaCore.IRawElementProviderFragment? FragmentNavigate(UiaCore.NavigateDirection direction)
             {
-                AccessibleObject _parentInternal = _owningListView.AccessibilityObject;
+                if (OwningListView is null)
+                {
+                    return null;
+                }
+
+                AccessibleObject _parentInternal = OwningListView.AccessibilityObject;
 
                 switch (direction)
                 {
@@ -35,7 +40,7 @@ namespace System.Windows.Forms
                         return _parentInternal;
                     case UiaCore.NavigateDirection.NextSibling:
                         int childIndex = _parentInternal.GetChildIndex(this);
-                        return childIndex == -1 ? null : _parentInternal.GetChild(childIndex + 1);
+                        return childIndex == InvalidIndex ? null : _parentInternal.GetChild(childIndex + 1);
                     case UiaCore.NavigateDirection.PreviousSibling:
                         return _parentInternal.GetChild(_parentInternal.GetChildIndex(this) - 1);
                 }
@@ -47,7 +52,12 @@ namespace System.Windows.Forms
             {
                 get
                 {
-                    var owningListViewRuntimeId = _owningListView.AccessibilityObject.RuntimeId;
+                    if (OwningListView is null)
+                    {
+                        return Array.Empty<int>();
+                    }
+
+                    var owningListViewRuntimeId = OwningListView.AccessibilityObject.RuntimeId;
 
                     Debug.Assert(owningListViewRuntimeId.Length >= 2);
 

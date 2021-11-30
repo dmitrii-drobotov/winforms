@@ -25,7 +25,7 @@ namespace System.Windows.Forms
                     case UiaCore.NavigateDirection.FirstChild:
                         return GetChild(0);
                     case UiaCore.NavigateDirection.LastChild:
-                        return GetChild(_owningListView.Columns.Count - 1);
+                        return GetChild((OwningListView?.Columns.Count ?? 0) - 1);
                 }
 
                 return base.FragmentNavigate(direction);
@@ -35,35 +35,46 @@ namespace System.Windows.Forms
             // or the index is negative, then we return null
             public override AccessibleObject? GetChild(int index)
             {
-                if (_owningListView.View != View.Details)
+                if (OwningListView is null)
+                {
+                    return null;
+                }
+
+                if (OwningListView.View != View.Details)
                 {
                     throw new InvalidOperationException(string.Format(SR.ListViewItemAccessibilityObjectInvalidViewException, nameof(View.Details)));
                 }
 
-                return !_owningListView.SupportsListViewSubItems || _owningListView.Columns.Count <= index || index < 0
+                return !OwningListView.SupportsListViewSubItems || OwningListView.Columns.Count <= index || index < 0
                     ? null
                     : GetDetailsSubItemOrFake(index);
             }
 
             public override int GetChildCount()
             {
-                if (_owningListView.View != View.Details)
+                if (OwningListView is null)
+                {
+                    return -1;
+                }
+
+                if (OwningListView.View != View.Details)
                 {
                     throw new InvalidOperationException(string.Format(SR.ListViewItemAccessibilityObjectInvalidViewException, nameof(View.Details)));
                 }
 
-                return !_owningListView.IsHandleCreated || !_owningListView.SupportsListViewSubItems
+                return !OwningListView.IsHandleCreated || !OwningListView.SupportsListViewSubItems
                     ? -1
-                    : _owningListView.Columns.Count;
+                    : OwningListView.Columns.Count;
             }
 
             internal override int GetChildIndex(AccessibleObject? child)
             {
                 if (child is null
-                    || !_owningListView.SupportsListViewSubItems
+                    || OwningListView is null
+                    || !OwningListView.SupportsListViewSubItems
                     || child is not ListViewSubItem.ListViewSubItemAccessibleObject subItemAccessibleObject)
                 {
-                    return -1;
+                    return InvalidIndex;
                 }
 
                 if (subItemAccessibleObject.OwningSubItem is null)
@@ -72,7 +83,7 @@ namespace System.Windows.Forms
                 }
 
                 int index = _owningItem.SubItems.IndexOf(subItemAccessibleObject.OwningSubItem);
-                return index > _owningListView.Columns.Count - 1 ? -1 : index;
+                return index > OwningListView.Columns.Count - 1 ? InvalidIndex : index;
             }
 
             // This method returns an accessibility object for an existing ListViewSubItem, or creates a fake one
@@ -113,8 +124,8 @@ namespace System.Windows.Forms
             }
 
             internal override Rectangle GetSubItemBounds(int subItemIndex)
-                => _owningListView.IsHandleCreated
-                    ? _owningListView.GetSubItemRect(_owningItem.Index, subItemIndex)
+                => OwningListView is not null && OwningListView.IsHandleCreated
+                    ? OwningListView.GetSubItemRect(_owningItem.Index, subItemIndex)
                     : Rectangle.Empty;
         }
     }

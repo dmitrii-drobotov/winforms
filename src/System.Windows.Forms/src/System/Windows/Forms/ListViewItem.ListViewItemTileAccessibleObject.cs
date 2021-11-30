@@ -32,7 +32,12 @@ namespace System.Windows.Forms
             // in the "Tile" view (the first ListViewSubItem is responsible for the ListViewItem)
             public override AccessibleObject? GetChild(int index)
             {
-                if (_owningListView.View != View.Tile)
+                if (OwningListView is null)
+                {
+                    return null;
+                }
+
+                if (OwningListView.View != View.Tile)
                 {
                     throw new InvalidOperationException(string.Format(SR.ListViewItemAccessibilityObjectInvalidViewException, nameof(View.Tile)));
                 }
@@ -44,9 +49,10 @@ namespace System.Windows.Forms
             {
                 // If the ListView does not support ListViewSubItems, the index is greater than the number of columns
                 // or the index is negative, then we return null
-                if (!_owningListView.SupportsListViewSubItems
+                if (OwningListView is null
+                    || !OwningListView.SupportsListViewSubItems
                     || index <= 0
-                    || _owningListView.Columns.Count <= index
+                    || OwningListView.Columns.Count <= index
                     || _owningItem.SubItems.Count <= index
                     || GetSubItemBounds(index).IsEmpty)
                 {
@@ -58,14 +64,19 @@ namespace System.Windows.Forms
 
             public override int GetChildCount()
             {
-                if (_owningListView.View != View.Tile)
+                if (OwningListView is null)
+                {
+                    return InvalidIndex;
+                }
+
+                if (OwningListView.View != View.Tile)
                 {
                     throw new InvalidOperationException(string.Format(SR.ListViewItemAccessibilityObjectInvalidViewException, nameof(View.Tile)));
                 }
 
-                if (!_owningListView.IsHandleCreated || !_owningListView.SupportsListViewSubItems)
+                if (!OwningListView.IsHandleCreated || !OwningListView.SupportsListViewSubItems)
                 {
-                    return -1;
+                    return InvalidIndex;
                 }
 
                 if (_owningItem.SubItems.Count == 1)
@@ -79,29 +90,30 @@ namespace System.Windows.Forms
             internal override int GetChildIndex(AccessibleObject? child)
             {
                 if (child is null
-                    || !_owningListView.SupportsListViewSubItems
+                    || OwningListView is null
+                    || !OwningListView.SupportsListViewSubItems
                     || child == _owningItem.SubItems[0].AccessibilityObject
                     || child is not ListViewSubItem.ListViewSubItemAccessibleObject subItemAccessibleObject
                     || subItemAccessibleObject.OwningSubItem is null)
                 {
-                    return -1;
+                    return InvalidIndex;
                 }
 
                 int index = _owningItem.SubItems.IndexOf(subItemAccessibleObject.OwningSubItem);
-                return index == -1 || index > GetLastChildIndex() ? -1 : index;
+                return index == InvalidIndex || index > GetLastChildIndex() ? -1 : index;
             }
 
             private int GetLastChildIndex()
             {
                 // Data about the first ListViewSubItem is displayed in the ListViewItem.
                 // Therefore, it is not displayed in the ListViewSubItems list
-                if (_owningItem.SubItems.Count == 1)
+                if (OwningListView is null || _owningItem.SubItems.Count == 1)
                 {
-                    return -1;
+                    return InvalidIndex;
                 }
 
                 // Only ListViewSubItems with the corresponding columns are displayed in the ListView
-                int subItemCount = Math.Min(_owningListView.Columns.Count, _owningItem.SubItems.Count);
+                int subItemCount = Math.Min(OwningListView.Columns.Count, _owningItem.SubItems.Count);
 
                 // The ListView can be of limited TileSize, so some of the ListViewSubItems can be hidden.
                 // sListViewSubItems that do not have enough space to display have an empty bounds
@@ -117,8 +129,8 @@ namespace System.Windows.Forms
             }
 
             internal override Rectangle GetSubItemBounds(int subItemIndex)
-                => _owningListView.IsHandleCreated
-                    ? _owningListView.GetSubItemRect(_owningItem.Index, subItemIndex)
+                => OwningListView is not null && OwningListView.IsHandleCreated
+                    ? OwningListView.GetSubItemRect(_owningItem.Index, subItemIndex)
                     : Rectangle.Empty;
         }
     }

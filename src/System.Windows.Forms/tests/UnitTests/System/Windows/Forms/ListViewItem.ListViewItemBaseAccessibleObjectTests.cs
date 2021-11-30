@@ -19,6 +19,14 @@ namespace System.Windows.Forms.Tests
         }
 
         [WinFormsFact]
+        public void ListViewItemBaseAccessibleObject_Ctor_OwnerListViewItemWithoutListView()
+        {
+            ListViewItem listViewItem = new();
+
+            Assert.NotNull(listViewItem.AccessibilityObject);
+        }
+
+        [WinFormsFact]
         public void ListViewItemBaseAccessibleObject_Role_ReturnsExpected()
         {
             using ListView control = new();
@@ -335,6 +343,272 @@ namespace System.Windows.Forms.Tests
 
             Assert.Equal((UiaCore.ToggleState)expected, accessibleObject.ToggleState);
             Assert.False(control.IsHandleCreated);
+        }
+
+        [WinFormsFact]
+        public void ListViewItemBaseAccessibleObject_Bounds_ReturnsEmptyRectangle_WithoutListView()
+        {
+            ListViewItem listViewItem = new();
+
+            Assert.Equal(Rectangle.Empty, listViewItem.AccessibilityObject.Bounds);
+        }
+
+        [WinFormsFact]
+        public void ListViewItemBaseAccessibleObject_CurrentIndex_ReturnsMinusOne_WithoutListView()
+        {
+            ListViewItem listViewItem = new();
+            ListViewItemBaseAccessibleObject accessibleObject = (ListViewItemBaseAccessibleObject)listViewItem.AccessibilityObject;
+
+            Assert.Equal(-1, accessibleObject.CurrentIndex);
+        }
+
+        [WinFormsFact]
+        public void ListViewItemBaseAccessibleObject_DefaultAction_ReturnsExpected_WithoutListView()
+        {
+            ListViewItem listViewItem = new();
+
+            Assert.Equal(SR.AccessibleActionDoubleClick, listViewItem.AccessibilityObject.DefaultAction);
+        }
+
+        [WinFormsFact]
+        public void ListViewItemBaseAccessibleObject_FragmentRoot_ReturnsNull_WithoutListView()
+        {
+            ListViewItem listViewItem = new();
+
+            Assert.Null(listViewItem.AccessibilityObject.FragmentRoot);
+        }
+
+        [WinFormsFact]
+        public void ListViewItemBaseAccessibleObject_IsItemSelected_ReturnsFalse_WithoutListView()
+        {
+            ListViewItem listViewItem = new();
+
+            Assert.False(listViewItem.AccessibilityObject.IsItemSelected);
+        }
+
+        [WinFormsFact]
+        public void ListViewItemBaseAccessibleObject_ItemSelectionContainer_ReturnsNull_WithoutListView()
+        {
+            ListViewItem listViewItem = new();
+
+            Assert.Null(listViewItem.AccessibilityObject.ItemSelectionContainer);
+        }
+
+        [WinFormsFact]
+        public void ListViewItemBaseAccessibleObject_Role_ReturnsExpected_WithoutListView()
+        {
+            ListViewItem listViewItem = new();
+
+            Assert.Equal(AccessibleRole.ListItem, listViewItem.AccessibilityObject.Role);
+        }
+
+        [WinFormsFact]
+        public void ListViewItemBaseAccessibleObject_State_ReturnsExpected_WithoutListView()
+        {
+            ListViewItem listViewItem = new();
+
+            Assert.Equal(AccessibleStates.Unavailable, listViewItem.AccessibilityObject.State);
+        }
+
+        [WinFormsTheory]
+        [InlineData((int)UiaCore.NavigateDirection.Parent)]
+        [InlineData((int)UiaCore.NavigateDirection.NextSibling)]
+        [InlineData((int)UiaCore.NavigateDirection.PreviousSibling)]
+        [InlineData((int)UiaCore.NavigateDirection.FirstChild)]
+        [InlineData((int)UiaCore.NavigateDirection.LastChild)]
+        public void ListViewItemBaseAccessibleObject_FragmentNavigate_ReturnsNull_WithoutListView(int navigateDirection)
+        {
+            ListViewItem listViewItem = new();
+
+            Assert.Null(listViewItem.AccessibilityObject.FragmentNavigate((UiaCore.NavigateDirection)navigateDirection));
+        }
+
+        [WinFormsTheory]
+        [InlineData(1)]
+        [InlineData(0)]
+        [InlineData(-1)]
+        public void ListViewItemBaseAccessibleObject_GetChild_ReturnsNull_WithoutListView(int childId)
+        {
+            ListViewItem listViewItem = new();
+
+            Assert.Null(listViewItem.AccessibilityObject.GetChild(childId));
+        }
+
+        [WinFormsTheory]
+        [InlineData(1)]
+        [InlineData(0)]
+        [InlineData(-1)]
+        public void ListViewItemBaseAccessibleObject_GetChildInternal_ReturnsNull_WithoutListView(int childId)
+        {
+            ListViewItem listViewItem = new();
+            ListViewItemBaseAccessibleObject accessibleObject = (ListViewItemBaseAccessibleObject)listViewItem.AccessibilityObject;
+
+            Assert.Null(accessibleObject.GetChildInternal(childId));
+        }
+
+        [WinFormsFact]
+        public void ListViewItemBaseAccessibleObject_GetChildCount_ReturnsMinusOne_WithoutListView()
+        {
+            ListViewItem listViewItem = new();
+
+            Assert.Equal(-1, listViewItem.AccessibilityObject.GetChildCount());
+        }
+
+        [WinFormsFact]
+        public void ListViewItemBaseAccessibleObject_RuntimeId_ReturnsEmptyArray_WithoutListView()
+        {
+            ListViewItem listViewItem = new();
+
+            Assert.Equal(Array.Empty<int>(), listViewItem.AccessibilityObject.RuntimeId);
+        }
+
+        [WinFormsTheory]
+        [InlineData((int)UiaCore.UIA.ScrollItemPatternId, true)]
+        [InlineData((int)UiaCore.UIA.LegacyIAccessiblePatternId, true)]
+        [InlineData((int)UiaCore.UIA.SelectionItemPatternId, true)]
+        [InlineData((int)UiaCore.UIA.InvokePatternId, true)]
+        [InlineData((int)UiaCore.UIA.TogglePatternId, false)]
+        public void ListViewItemBaseAccessibleObject_IsPatternSupported_ReturnsExpected_WithoutListView(int patternId, bool patternSupported)
+        {
+            ListViewItem listViewItem = new();
+
+            Assert.Equal(patternSupported, listViewItem.AccessibilityObject.IsPatternSupported((UiaCore.UIA)patternId));
+        }
+
+        [WinFormsFact]
+        public void ListViewItemBaseAccessibleObject_ToggleState_ReturnExpected_WithoutListView()
+        {
+            ListViewItem listViewItem = new();
+
+            Assert.Equal(UiaCore.ToggleState.Off, listViewItem.AccessibilityObject.ToggleState);
+
+            listViewItem.AccessibilityObject.Toggle();
+
+            Assert.Equal(UiaCore.ToggleState.On, listViewItem.AccessibilityObject.ToggleState);
+
+            listViewItem.AccessibilityObject.Toggle();
+
+            Assert.Equal(UiaCore.ToggleState.Off, listViewItem.AccessibilityObject.ToggleState);
+        }
+
+        [WinFormsTheory]
+        [InlineData(-1)]
+        [InlineData(0)]
+        [InlineData(1)]
+        public void ListViewItemBaseAccessibleObject_GetSubItemBounds_ReturnsEmptyRectangle_WithoutListView(int subItemIndex)
+        {
+            ListViewItem listViewItem = new();
+            ListViewItemBaseAccessibleObject accessibleObject = (ListViewItemBaseAccessibleObject)listViewItem.AccessibilityObject;
+
+            Assert.Equal(Rectangle.Empty, accessibleObject.GetSubItemBounds(subItemIndex));
+        }
+
+        [WinFormsFact]
+        public void ListViewItemBaseAccessibleObject_AddToSelection_DoesNotThrowException_WithoutListView()
+        {
+            ListViewItem listViewItem = new();
+            AccessibleObject accessibleObject = listViewItem.AccessibilityObject;
+
+            Assert.False(accessibleObject.IsItemSelected);
+
+            accessibleObject.AddToSelection();
+
+            Assert.False(accessibleObject.IsItemSelected);
+        }
+
+        [WinFormsFact]
+        public void ListViewItemBaseAccessibleObject_SelectItem_DoesNotThrowException_WithoutListView()
+        {
+            ListViewItem listViewItem = new();
+            AccessibleObject accessibleObject = listViewItem.AccessibilityObject;
+
+            Assert.False(accessibleObject.IsItemSelected);
+
+            accessibleObject.SelectItem();
+
+            Assert.False(accessibleObject.IsItemSelected);
+        }
+
+        [WinFormsFact]
+        public void ListViewItemBaseAccessibleObject_Select_DoesNotThrowException_WithoutListView()
+        {
+            ListViewItem listViewItem = new();
+            AccessibleObject accessibleObject = listViewItem.AccessibilityObject;
+
+            Assert.False(accessibleObject.IsItemSelected);
+
+            accessibleObject.Select(AccessibleSelection.AddSelection);
+
+            Assert.False(accessibleObject.IsItemSelected);
+        }
+
+        [WinFormsFact]
+        public void ListViewItemBaseAccessibleObject_DoDefaultAction_DoesNotThrowException_WithoutListView()
+        {
+            ListViewItem listViewItem = new();
+            AccessibleObject accessibleObject = listViewItem.AccessibilityObject;
+
+            Assert.False(accessibleObject.IsItemSelected);
+
+            accessibleObject.DoDefaultAction();
+
+            Assert.False(accessibleObject.IsItemSelected);
+        }
+
+        [WinFormsFact]
+        public void ListViewItemBaseAccessibleObject_SetFocus_DoesNotThrowException_WithoutListView()
+        {
+            ListViewItem listViewItem = new();
+            AccessibleObject accessibleObject = listViewItem.AccessibilityObject;
+
+            Assert.False(accessibleObject.IsItemSelected);
+
+            accessibleObject.SetFocus();
+
+            Assert.False(accessibleObject.IsItemSelected);
+        }
+
+        [WinFormsFact]
+        public void ListViewItemBaseAccessibleObject_RemoveFromSelection_DoesNotThrowException_WithoutListView()
+        {
+            ListViewItem listViewItem = new();
+            AccessibleObject accessibleObject = listViewItem.AccessibilityObject;
+
+            Assert.False(accessibleObject.IsItemSelected);
+
+            accessibleObject.RemoveFromSelection();
+
+            Assert.False(accessibleObject.IsItemSelected);
+        }
+
+        [WinFormsFact]
+        public void ListViewItemBaseAccessibleObject_ScrollIntoView_DoesNotThrowException_WithoutListView()
+        {
+            ListViewItem listViewItem = new();
+            AccessibleObject accessibleObject = listViewItem.AccessibilityObject;
+
+            accessibleObject.ScrollIntoView();
+
+            Assert.False(accessibleObject.IsItemSelected);
+        }
+
+        [WinFormsTheory]
+        [InlineData((int)UiaCore.UIA.HasKeyboardFocusPropertyId, false)]
+        [InlineData((int)UiaCore.UIA.IsEnabledPropertyId, false)]
+        [InlineData((int)UiaCore.UIA.IsKeyboardFocusablePropertyId, false)]
+        public void ListViewItemBaseAccessibleObject_GetPropertyValue_ReturnsExpected_WithoutListView(int propertyId, object expected)
+        {
+            ListViewItem listViewItem = new();
+
+            Assert.Equal(expected, listViewItem.AccessibilityObject.GetPropertyValue((UiaCore.UIA)propertyId));
+        }
+
+        [WinFormsFact]
+        public void ListViewItemBaseAccessibleObject_NativeWindowHandlePropertyId_ReturnsExpected_WithoutListView()
+        {
+            ListViewItem listViewItem = new();
+
+            Assert.Equal(IntPtr.Zero, listViewItem.AccessibilityObject.GetPropertyValue(UiaCore.UIA.NativeWindowHandlePropertyId));
         }
     }
 }

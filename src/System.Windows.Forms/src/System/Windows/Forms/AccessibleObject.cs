@@ -76,6 +76,8 @@ namespace System.Windows.Forms
         private static bool s_notificationEventAvailable = true;
         private static bool? s_canNotifyClients;
 
+        internal const int InvalidIndex = -1;
+
         internal const int RuntimeIDFirstItem = 0x2a;
 
         public AccessibleObject()
@@ -208,7 +210,7 @@ namespace System.Windows.Forms
         /// </summary>
         public virtual AccessibleObject? GetChild(int index) => null;
 
-        internal virtual int GetChildIndex(AccessibleObject? child) => -1;
+        internal virtual int GetChildIndex(AccessibleObject? child) => InvalidIndex;
 
         /// <summary>
         ///  When overridden in a derived class, gets the number of children
