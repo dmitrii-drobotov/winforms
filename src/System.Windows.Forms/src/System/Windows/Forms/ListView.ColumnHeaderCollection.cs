@@ -575,7 +575,8 @@ namespace System.Windows.Forms
                 }
 
                 // in Tile view our ListView uses the column header collection to update the Tile Information
-                if (_owner.IsHandleCreated && _owner.View == View.Tile)
+                //if (_owner.IsHandleCreated && (_owner.View == View.Tile))
+                if (_owner.IsHandleCreated && (_owner.View == View.Tile || _owner.View == View.Details))
                 {
                     _owner.RecreateHandleInternal();
                 }

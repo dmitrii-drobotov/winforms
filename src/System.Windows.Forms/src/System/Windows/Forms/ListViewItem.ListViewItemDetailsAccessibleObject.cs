@@ -4,6 +4,7 @@
 
 using System.Drawing;
 using static Interop;
+using static Interop.ComCtl32;
 
 namespace System.Windows.Forms
 {
@@ -72,6 +73,7 @@ namespace System.Windows.Forms
                 }
 
                 int index = _owningItem.SubItems.IndexOf(subItemAccessibleObject.OwningSubItem);
+                //int index = subItemAccessibleObject.Column;
                 return index > _owningListView.Columns.Count - 1 ? InvalidIndex : index;
             }
 
@@ -84,6 +86,26 @@ namespace System.Windows.Forms
                 {
                     _listViewSubItemAccessibleObjects.Remove(subItemIndex);
 
+                    //var lvItem = new LVITEMW
+                    //{
+                    //    iItem = _owningItem.Index,
+                    //    iSubItem = subItemIndex,
+                    //    mask = LVIF.COLFMT | LVIF.COLUMNS
+                    //};
+
+                    //var res = User32.SendMessageW(_owningListView, (User32.WM)LVM.GETITEMW, 0, ref lvItem);
+
+                    //var lvColumn = new LVCOLUMNW
+                    //{
+                    //    mask = LVCF.SUBITEM | LVCF.TEXT | LVCF.WIDTH,
+                    //    iSubItem = subItemIndex
+                    //};
+                    //var res = User32.SendMessageW(_owningListView, (User32.WM)LVM.GETCOLUMNW, subItemIndex, ref lvColumn);
+
+                    //var subitemBounds = GetSubItemBounds(subItemIndex);
+                    //var subitem = _owningItem.GetSubItemAt(subitemBounds.X, subitemBounds.Y);
+                    //return subitem.AccessibilityObject;
+                    Debug.WriteLine($"Index: {subItemIndex} SubItem: {_owningItem.SubItems[subItemIndex].Text}");
                     return _owningItem.SubItems[subItemIndex].AccessibilityObject;
                 }
 

@@ -189,7 +189,7 @@ namespace WinformsControlsTest
             },
             {
                 MainFormControlsTabOrder.DragAndDrop,
-                new InitInfo("Drag and Drop", (obj, e) => new DragDrop().Show(this))
+                new InitInfo("Test", (obj, e) => new Form1().Show(this))
             },
             {
                 MainFormControlsTabOrder.TextBoxesButton,

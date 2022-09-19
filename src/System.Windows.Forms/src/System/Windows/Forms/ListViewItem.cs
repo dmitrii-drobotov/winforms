@@ -770,6 +770,8 @@ namespace System.Windows.Forms
             }
         }
 
+        internal Dictionary<int, ListViewSubItem> SubItemDisplayIndices { get; set; } = new();
+
         [SRCategory(nameof(SR.CatData))]
         [Localizable(false)]
         [Bindable(true)]
